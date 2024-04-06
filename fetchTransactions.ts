@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_KEY = '8F9UN1K5JAE6GUC2A7FRWJ54TST6X2WJX2';
+const API_KEY = '';
 const CONTRACT_ADDRESS = '0x85f7cfe910393fb5593c65230622aa597e4223f1';
 
 async function fetchTransactions() {
