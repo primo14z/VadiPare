@@ -61,5 +61,5 @@ client.query({
   query: GET_TRADE_INFO,
   variables: variables,
 })
-  .then(result => console.log(result.data))
+  .then(result => console.log("Complete Data:", JSON.stringify(result.data, null, 2)))
   .catch(error => console.error(error));

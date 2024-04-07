@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const axios_1 = __importDefault(require("axios"));
-const API_KEY = '8F9UN1K5JAE6GUC2A7FRWJ54TST6X2WJX2';
+const API_KEY = '';
 const CONTRACT_ADDRESS = '0x85f7cfe910393fb5593c65230622aa597e4223f1';
 function fetchTransactions() {
     return __awaiter(this, void 0, void 0, function* () {
