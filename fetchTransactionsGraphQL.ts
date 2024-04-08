@@ -7,19 +7,23 @@ import {read} from "fs";
 // Polyfill fetch in the global scope
 global.fetch = fetch;
 
+let accounts = new Set([]);
+
+const client = new ApolloClient({
+  link: new HttpLink({
+    uri: 'https://streaming.bitquery.io/graphql',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer token'
+    },
+    fetch,
+  }),
+  cache: new InMemoryCache(),
+});
+
 async function fetchTransactionsGraphQL(token: string, timestamp: number) {
   // Set up Apollo Client
-  const client = new ApolloClient({
-    link: new HttpLink({
-      uri: 'https://streaming.bitquery.io/graphql',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer token'
-      },
-      fetch,
-    }),
-    cache: new InMemoryCache(),
-  });
+
 
 
 // Define the GraphQL query
@@ -85,33 +89,38 @@ async function fetchTransactionsGraphQL(token: string, timestamp: number) {
   // },
 
 
-
-
-
-  const blockTimeRes = await axios.get("https://coins.llama.fi/block/ethereum/1712498031");
+  const blockTimeRes = await axios.get("https://coins.llama.fi/block/ethereum/1712584269");
   let blockEnd = 0;
   let blockStart = 0;
   if (blockTimeRes.status == 200) {
-    blockEnd  = blockTimeRes.data.height;
+    blockEnd = blockTimeRes.data.height;
     blockStart = blockEnd - 300; // prb ura manj
   }
 
 // Define variables for the query
   const variables = {
-    token: "0x9e9fbde7c7a83c43913bddc8779158f1368f0413",
+    token: token,
     startblock: blockStart.toString(),
-    endblock: (blockEnd + 1).toString()
+    endblock: (blockEnd + 2).toString()
   };
 
 // Execute the query
-  client.query({
+  const query = await client.query({
     query: GET_TRADE_INFO,
     variables: variables,
-  })
-      .then(result => console.log("Complete Data:", JSON.stringify(result.data, null, 2)))
-      .catch(error => console.error(error));
-}
+  });
 
+  const trades = query.data["EVM"]["DEXTrades"];
+
+  const tmpacc = new Set(trades.map((t: any) => t["Trade"]["Buy"]["Seller"]));
+  console.log(tmpacc);
+  // if (accounts.size > 0) {
+  //   accounts = new Set([... tmpacc]);
+  // } else {
+  //   accounts = new Set([...accounts].filter(i => tmpacc.has(i)));
+  // }
+
+}
 async function readFile() {
   const workbook = XLSX.readFile("YoungBoy1Gems.xlsx");
   const firstSheetName = workbook.SheetNames[0];
@@ -120,14 +129,13 @@ async function readFile() {
   // Convert the sheet to JSON with option { header: 1 } to get an array of arrays
   const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-  jsonData.slice(1).forEach(async (row: any, index) => {
+
+
+  await jsonData.slice(1).forEach(async (row: any, index) => {
     setTimeout(async () => {await fetchTransactionsGraphQL(row[1], row[2]);}, 5000)
   })
 
-  // Skip the header row (first row) and log each row
-  jsonData.slice(1).forEach((row, index) => {
-    console.log(`Row ${index + 1}:`, row);
-  });
+  console.log(accounts);
 }
 
-fetchTransactionsGraphQL("", 1);
+readFile();
