@@ -14,7 +14,7 @@ const client = new ApolloClient({
     uri: 'https://streaming.bitquery.io/graphql',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer token'
+      'Authorization': 'Bearer ory_at_O9OKI6Ga4Uoas9z5TH5-L-PY8EHJWPuIMQsk4VHKf60.wFPNep4F9bUuvS7qmVx0pNhI9lRo8nABy1Ox47etE-E'
     },
     fetch,
   }),
@@ -112,13 +112,22 @@ async function fetchTransactionsGraphQL(token: string, timestamp: number) {
 
   const trades = query.data["EVM"]["DEXTrades"];
 
-  const tmpacc = new Set(trades.map((t: any) => t["Trade"]["Buy"]["Seller"]));
-  console.log(tmpacc);
-  // if (accounts.size > 0) {
-  //   accounts = new Set([... tmpacc]);
-  // } else {
-  //   accounts = new Set([...accounts].filter(i => tmpacc.has(i)));
-  // }
+  for (const t in trades) {
+    const tr  = trades[t];
+    const trade = tr["Trade"];
+    const buy = tr["Buy"];
+    const seller = buy["Seller"];
+    const ammount = parseFloat(buy["Ammount"]);
+  }
+
+  const sez = [trades.map((t: any) => t["Trade"]["Buy"]["Seller"])];
+
+  const tmpacc = new Set(sez.length > 0 ? sez : new Set());
+  if (accounts.size > 0) {
+    accounts = new Set([... tmpacc]);
+  } else {
+    accounts = new Set([...accounts].filter(i => tmpacc.has(i)));
+  }
 
 }
 async function readFile() {
