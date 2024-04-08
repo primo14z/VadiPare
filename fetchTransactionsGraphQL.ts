@@ -120,15 +120,6 @@ async function fetchTransactionsGraphQL(token: string, timestamp: number) {
     const ammount = parseFloat(buy["Ammount"]);
   }
 
-  const sez = [trades.map((t: any) => t["Trade"]["Buy"]["Seller"])];
-
-  const tmpacc = new Set(sez.length > 0 ? sez : new Set());
-  if (accounts.size > 0) {
-    accounts = new Set([... tmpacc]);
-  } else {
-    accounts = new Set([...accounts].filter(i => tmpacc.has(i)));
-  }
-
 }
 async function readFile() {
   const workbook = XLSX.readFile("YoungBoy1Gems.xlsx");
