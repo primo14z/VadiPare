@@ -3,18 +3,20 @@ import axios from 'axios';
 import {fetch} from 'cross-fetch';
 import * as XLSX from 'xlsx';
 import {read} from "fs";
+import {json} from "stream/consumers";
 
 // Polyfill fetch in the global scope
 global.fetch = fetch;
 
-let accounts = new Set([]);
+let accounts = new Set<string>();
+let start = false;
 
 const client = new ApolloClient({
   link: new HttpLink({
     uri: 'https://streaming.bitquery.io/graphql',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer ory_at_O9OKI6Ga4Uoas9z5TH5-L-PY8EHJWPuIMQsk4VHKf60.wFPNep4F9bUuvS7qmVx0pNhI9lRo8nABy1Ox47etE-E'
+      'Authorization': 'Bearer token'
     },
     fetch,
   }),
@@ -28,10 +30,11 @@ async function fetchTransactionsGraphQL(token: string, timestamp: number) {
 
 // Define the GraphQL query
   const GET_TRADE_INFO = gql`
-  query MyQuery($token: String!, $startblock: String!, $endblock: String!) {
+  query MyQuery($token: String!, $endblock: String!) {
     EVM(network: eth, mempool: true, dataset: combined) {
     DEXTrades(
-      where: {Trade: {Sell: {Currency: {SmartContract: {is: $token}}}}, Block: {Number: {le: $endblock, gt: $startblock}}}
+      limit: { count: 1000 }
+      where: {Trade: {Sell: {Currency: {SmartContract: {is: $token}}}}, Block: {Number: {le: $endblock}}}
       orderBy: {descending: Block_Number}
     ) {
       Trade {
@@ -91,16 +94,13 @@ async function fetchTransactionsGraphQL(token: string, timestamp: number) {
 
   const blockTimeRes = await axios.get("https://coins.llama.fi/block/ethereum/1712584269");
   let blockEnd = 0;
-  let blockStart = 0;
   if (blockTimeRes.status == 200) {
     blockEnd = blockTimeRes.data.height;
-    blockStart = blockEnd - 300; // prb ura manj
   }
 
 // Define variables for the query
   const variables = {
     token: token,
-    startblock: blockStart.toString(),
     endblock: (blockEnd + 2).toString()
   };
 
@@ -112,14 +112,30 @@ async function fetchTransactionsGraphQL(token: string, timestamp: number) {
 
   const trades = query.data["EVM"]["DEXTrades"];
 
-  for (const t in trades) {
-    const tr  = trades[t];
-    const trade = tr["Trade"];
-    const buy = tr["Buy"];
-    const seller = buy["Seller"];
-    const ammount = parseFloat(buy["Ammount"]);
-  }
+  const curAddr = new Set<string>();
 
+  if (trades.length > 0) {
+    for (const t in trades) {
+      const tr  = trades[t];
+      const trade = tr["Trade"];
+      const buy = trade["Buy"];
+      const seller: string = buy["Seller"];
+      const amount = parseFloat(buy["Amount"]);
+
+      if (amount > 0.03) {
+        curAddr.add(seller);
+      }
+    }
+
+    if (!start) {
+      accounts = curAddr;
+      start = true;
+    } else {
+      accounts = new Set([...accounts].filter(i => curAddr.has(i)));
+    }
+
+  }
+  console.log("done");
 }
 async function readFile() {
   const workbook = XLSX.readFile("YoungBoy1Gems.xlsx");
@@ -129,13 +145,20 @@ async function readFile() {
   // Convert the sheet to JSON with option { header: 1 } to get an array of arrays
   const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
+  const length = jsonData.length;
+  console.log(length);
 
-
-  await jsonData.slice(1).forEach(async (row: any, index) => {
-    setTimeout(async () => {await fetchTransactionsGraphQL(row[1], row[2]);}, 5000)
+  jsonData.slice(1).forEach((row: any, index) => {
+    setTimeout(() => {
+      fetchTransactionsGraphQL(row[1], row[2]);
+      if (index == length - 1) {
+        console.log(accounts);
+      }
+    }, 6000)
   })
 
-  console.log(accounts);
+
 }
 
 readFile();
+// fetchTransactionsGraphQL("0x68bbed6a47194eff1cf514b50ea91895597fc91e", 5);
